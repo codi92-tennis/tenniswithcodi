@@ -446,57 +446,52 @@
   </div>
 </section>
 
-<section class="reservation" id="reservation">
-  <div class="wrap">
-    <div class="tag">RÉSERVER</div>
-    <h2 class="h">Réserver un créneau</h2>
-    <p class="lead">Choisissez un jour, une heure de début et la durée souhaitée — on vérifie tout de suite si le créneau est libre sur l'agenda ci-dessus.</p>
-    <form class="res-form" id="resForm" action="https://formspree.io/f/xjyyoprp">
-      <div>
-        <label for="r-nom">Nom</label>
-        <input id="r-nom" type="text" placeholder="Votre nom" required>
-      </div>
-      <div>
-        <label for="r-tel">Téléphone</label>
-        <input id="r-tel" type="tel" placeholder="06 00 00 00 00" required>
-      </div>
-      <div>
-        <label for="r-jour">Jour</label>
-        <select id="r-jour" required>
-          <option value="">Choisir un jour</option>
-          <option value="Lun">Lundi</option>
-          <option value="Mar">Mardi</option>
-          <option value="Mer">Mercredi</option>
-          <option value="Jeu">Jeudi</option>
-          <option value="Ven">Vendredi</option>
-          <option value="Sam">Samedi</option>
-          <option value="Dim">Dimanche</option>
-        </select>
-      </div>
-      <div>
-        <label for="r-heure">Heure de début</label>
-        <select id="r-heure" required>
-          <option value="">Choisir une heure</option>
-          <option value="8">8h</option><option value="9">9h</option><option value="10">10h</option>
-          <option value="11">11h</option><option value="12">12h</option><option value="13">13h</option>
-          <option value="14">14h</option><option value="15">15h</option><option value="16">16h</option>
-          <option value="17">17h</option><option value="18">18h</option><option value="19">19h</option>
-        </select>
-      </div>
-      <div class="full">
-        <label for="r-duree">Durée</label>
-        <select id="r-duree" required>
-          <option value="1">1h</option>
-          <option value="1.5">1h30</option>
-          <option value="2">2h</option>
-          <option value="2.5">2h30</option>
-          <option value="3">3h</option>
-          <option value="3.5">3h30</option>
-        </select>
-      </div>
-      <button type="submit" class="btn btn-fill">Vérifier &amp; réserver</button>
-      <p class="res-msg" id="resMsg"></p>
-    </form>
+<form class="res-form" id="resForm" action="https://formspree.io/f/xjyyoprp" method="POST">
+  <div>
+    <label for="r-nom">Nom</label>
+    <input id="r-nom" name="nom" type="text" placeholder="Votre nom" required>
+  </div>
+  <div>
+    <label for="r-tel">Téléphone</label>
+    <input id="r-tel" name="telephone" type="tel" placeholder="06 00 00 00 00" required>
+  </div>
+  <div>
+    <label for="r-jour">Jour</label>
+    <select id="r-jour" name="jour" required>
+      <option value="">Choisir un jour</option>
+      <option value="Lun">Lundi</option>
+      <option value="Mar">Mardi</option>
+      <option value="Mer">Mercredi</option>
+      <option value="Jeu">Jeudi</option>
+      <option value="Ven">Vendredi</option>
+      <option value="Sam">Samedi</option>
+      <option value="Dim">Dimanche</option>
+    </select>
+  </div>
+  <div>
+    <label for="r-heure">Heure de début</label>
+    <select id="r-heure" name="heure" required>
+      <option value="">Choisir une heure</option>
+      <option value="8">8h</option><option value="9">9h</option><option value="10">10h</option>
+      <option value="11">11h</option><option value="12">12h</option><option value="13">13h</option>
+      <option value="14">14h</option><option value="15">15h</option><option value="16">16h</option>
+      <option value="17">17h</option><option value="18">18h</option><option value="19">19h</option>
+    </select>
+  </div>
+  <div class="full">
+    <label for="r-duree">Durée</label>
+    <select id="r-duree" name="duree" required>
+      <option value="1">1h</option>
+      <option value="1.5">1h30</option>
+      <option value="2">2h</option>
+      <option value="2.5">2h30</option>
+      <option value="3">3h</option>
+      <option value="3.5">3h30</option>
+    </select>
+  </div>
+  <button type="submit" class="btn btn-fill">Vérifier &amp; réserver</button>
+  <p class="res-msg" id="resMsg"></p>
+</form>
   </div>
 </section>
 
