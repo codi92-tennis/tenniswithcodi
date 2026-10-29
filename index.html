@@ -450,7 +450,8 @@
     <div class="tag">RÉSERVER</div>
     <h2 class="h">Réserver un créneau</h2>
     <p class="lead">Choisissez un jour, une heure de début et la durée souhaitée — on vérifie tout de suite si le créneau est libre sur l'agenda ci-dessus.</p>
-<form  class="res-form" id="resForm" action="https://formspree.io/f/xjyyoprp" method="POST">
+<form class="res-form" id="resForm" action="https://formspree.io/f/xjyyoprp" method="POST">
+  <input type="hidden" name="_subject" value="Nouvelle réservation — Tennis with Codi">
   <div>
     <label for="r-nom">Nom</label>
     <input id="r-nom" name="nom" type="text" placeholder="Votre nom" required>
@@ -511,7 +512,8 @@
         <span>@tenniswithcodi</span>
       </div>
     </div>
-    <form class="res-form" id="resForm" action="https://formspree.io/f/xjyyoprp" method="POST">
+    <form class="res-form" id="contactForm" action="https://formspree.io/f/xjyyoprp" method="POST">
+  <input type="hidden" name="_subject" value="Nouveau message — Tennis with Codi">
   <div>
     <label for="f-nom">Nom</label>
     <input id="f-nom" name="nom" type="text" placeholder="Votre nom" required>
@@ -525,6 +527,7 @@
     <textarea id="f-objectif" name="objectif" placeholder="Votre niveau actuel et ce que vous souhaitez travailler en particulier" required></textarea>
   </div>
   <button type="submit" class="btn btn-fill">Envoyer le message</button>
+  <p class="res-msg" id="contactMsg"></p>
 </form>
   </div>
 </section>
@@ -588,6 +591,7 @@
   var ADMIN_USER = "AdrienCodino";
   var ADMIN_PASS = "CoachTennis001!";
   var DOC_PATH = "agenda/base";
+  var FORMSPREE_URL = "https://formspree.io/f/xjyyoprp";
 
   function keyFor(day, hour){ return day + "_" + hour; }
 
@@ -629,7 +633,7 @@
 
   function localToggle(k, val){
     latestSlots[k] = val;
-    localStorage.setItem("twc_agenda", JSON.stringify(latestSlots));
+    try{ localStorage.setItem("twc_agenda", JSON.stringify(latestSlots)); }catch(e){}
     renderGrid("agendaGrid", latestSlots, false);
     if(document.getElementById("adminPanelBox").style.display !== "none"){
       renderGrid("adminGrid", latestSlots, true, localToggle);
@@ -684,18 +688,40 @@
 
   subscribeAgenda();
 
-  // ----- Formulaire de contact -----
-  document.getElementById("contactForm").addEventListener("submit", function(e){
-    e.preventDefault();
-    var nom = document.getElementById("f-nom").value;
-    var coord = document.getElementById("f-coord").value;
-    var objectif = document.getElementById("f-objectif").value;
-    var subject = encodeURIComponent("Demande de cours — " + nom);
-    var body = encodeURIComponent("Nom : " + nom + "\nCoordonnées : " + coord + "\n\nObjectif :\n" + objectif);
-    window.location.href = "mailto:contact@gmail.fr?subject=" + subject + "&body=" + body;
-  });
+  // ----- Formulaire de contact (envoi via Formspree) -----
+  var contactForm = document.getElementById("contactForm");
+  if(contactForm){
+    contactForm.addEventListener("submit", function(e){
+      e.preventDefault();
+      var form = e.target;
+      var btn = form.querySelector("button[type=submit]");
+      var msg = document.getElementById("contactMsg");
+      btn.disabled = true;
+      msg.textContent = "Envoi en cours…";
+      msg.className = "res-msg";
+      fetch(FORMSPREE_URL, {
+        method: "POST",
+        body: new FormData(form),
+        headers: { "Accept": "application/json" }
+      }).then(function(r){
+        if(r.ok){
+          form.reset();
+          msg.textContent = "Message envoyé ! Adrien te recontacte très vite.";
+          msg.className = "res-msg success";
+        } else {
+          msg.textContent = "Erreur lors de l'envoi, merci de réessayer.";
+          msg.className = "res-msg error";
+        }
+        btn.disabled = false;
+      }).catch(function(){
+        msg.textContent = "Erreur réseau, merci de réessayer.";
+        msg.className = "res-msg error";
+        btn.disabled = false;
+      });
+    });
+  }
 
-  // ----- Réservation (vérifie les conflits sur l'agenda partagé) -----
+  // ----- Réservation (vérifie les conflits sur l'agenda partagé, puis envoie via Formspree) -----
   var DAY_LABEL = {Lun:"lundi",Mar:"mardi",Mer:"mercredi",Jeu:"jeudi",Ven:"vendredi",Sam:"samedi",Dim:"dimanche"};
   var DUR_LABEL = {"1":"1h","1.5":"1h30","2":"2h","2.5":"2h30","3":"3h","3.5":"3h30"};
 
@@ -707,13 +733,15 @@
 
   document.getElementById("resForm").addEventListener("submit", function(e){
     e.preventDefault();
+    var form = e.target;
+    var btn = form.querySelector("button[type=submit]");
     var nom = document.getElementById("r-nom").value.trim();
     var tel = document.getElementById("r-tel").value.trim();
     var jour = document.getElementById("r-jour").value;
     var startHour = parseInt(document.getElementById("r-heure").value, 10);
     var duree = parseFloat(document.getElementById("r-duree").value);
 
-    if(!jour || !startHour || !duree){ setResMsg("Merci de remplir tous les champs.", "error"); return; }
+    if(!jour || isNaN(startHour) || isNaN(duree)){ setResMsg("Merci de remplir tous les champs.", "error"); return; }
 
     var blocks = Math.ceil(duree);
     var coveredHours = [];
@@ -733,31 +761,50 @@
       return;
     }
 
-    // Réservation optimiste : on bloque les créneaux concernés
-    var patch = {};
-    coveredHours.forEach(function(h){ patch[keyFor(jour, h)] = false; latestSlots[keyFor(jour, h)] = false; });
-    renderGrid("agendaGrid", latestSlots, false);
-    if(document.getElementById("adminPanelBox").style.display !== "none"){
-      if(usingFallback){ renderGrid("adminGrid", latestSlots, true, localToggle); } else { renderAdminGrid(); }
-    }
-    if(usingFallback){
-      localStorage.setItem("twc_agenda", JSON.stringify(latestSlots));
-    } else if(dbRef){
-      dbRef.update(patch).catch(function(err){
-        if(err && err.code === "invalid_argument"){ dbRef.set(patch).catch(function(){}); }
-        // écriture refusée (droits insuffisants) : le créneau reste réservé visuellement pour ce visiteur,
-        // la confirmation définitive se fera par Adrien via l'espace admin à réception de l'email.
-      });
-    }
+    // Envoi de la demande à Formspree (uniquement si le créneau est libre)
+    var data = new FormData(form);
+    data.append("jour_complet", DAY_LABEL[jour]);
+    data.append("creneaux", coveredHours.map(function(h){ return h + "h"; }).join(", "));
+    data.append("duree_label", DUR_LABEL[String(duree)]);
 
-    var subject = encodeURIComponent("Réservation — " + nom + " — " + DAY_LABEL[jour] + " " + startHour + "h");
-    var body = encodeURIComponent(
-      "Nom : " + nom + "\nTéléphone : " + tel +
-      "\nJour : " + DAY_LABEL[jour] + "\nHeure de début : " + startHour + "h\nDurée : " + DUR_LABEL[String(duree)] +
-      "\nCréneaux concernés : " + coveredHours.map(function(h){ return h + "h"; }).join(", ")
-    );
-    setResMsg("Créneau réservé ! Un email pré-rempli s'ouvre pour confirmer avec Adrien.", "success");
-    window.location.href = "mailto:contact@gmail.fr?subject=" + subject + "&body=" + body;
+    btn.disabled = true;
+    setResMsg("Envoi en cours…", "");
+
+    fetch(FORMSPREE_URL, {
+      method: "POST",
+      body: data,
+      headers: { "Accept": "application/json" }
+    }).then(function(r){
+      if(!r.ok){
+        setResMsg("Erreur lors de l'envoi, merci de réessayer.", "error");
+        btn.disabled = false;
+        return;
+      }
+
+      // Réservation optimiste : on bloque les créneaux concernés
+      var patch = {};
+      coveredHours.forEach(function(h){ patch[keyFor(jour, h)] = false; latestSlots[keyFor(jour, h)] = false; });
+      renderGrid("agendaGrid", latestSlots, false);
+      if(document.getElementById("adminPanelBox").style.display !== "none"){
+        if(usingFallback){ renderGrid("adminGrid", latestSlots, true, localToggle); } else { renderAdminGrid(); }
+      }
+      if(usingFallback){
+        try{ localStorage.setItem("twc_agenda", JSON.stringify(latestSlots)); }catch(err){}
+      } else if(dbRef){
+        dbRef.update(patch).catch(function(err){
+          if(err && err.code === "invalid_argument"){ dbRef.set(patch).catch(function(){}); }
+          // écriture refusée (droits insuffisants) : le créneau reste réservé visuellement pour ce visiteur,
+          // la confirmation définitive se fera par Adrien via l'espace admin à réception de l'email.
+        });
+      }
+
+      form.reset();
+      btn.disabled = false;
+      setResMsg("Créneau réservé ! Adrien a bien reçu ta demande et te confirmera rapidement.", "success");
+    }).catch(function(){
+      setResMsg("Erreur réseau, merci de réessayer.", "error");
+      btn.disabled = false;
+    });
   });
 
   // ----- Espace admin (accès par lien direct + mot de passe) -----
